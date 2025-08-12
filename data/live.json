@@ -1,0 +1,14 @@
+{
+  "fetched_at": "2025-08-12 20:00:00",
+  "small_savings": {
+    "as_of": "2025-06-30",
+    "source": "https://www.dea.gov.in/",
+    "ppf_rate": 7.1
+  },
+  "epf": {
+    "as_of": "2025-05-26",
+    "source": "https://www.epfindia.gov.in/",
+    "epf_rate": 8.25
+  }
+  
+}

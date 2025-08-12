@@ -1,0 +1,17 @@
+[
+    {
+      "id": "ppf_rules",
+      "text": "PPF is a 15-year scheme; interest set quarterly by DEA; contributions eligible under 80C; EEE tax regime.",
+      "source": "DEA/NSI"
+    },
+    {
+      "id": "epf_rules",
+      "text": "EPF interest is declared for each financial year by EPFO; interest usually credited after year-end for active accounts.",
+      "source": "EPFO"
+    },
+    {
+      "id": "nps_rules",
+      "text": "NPS Tier I has withdrawal rules at retirement (partial annuitization); returns vary by scheme and fund manager.",
+      "source": "NPS Trust"
+    }
+  ]

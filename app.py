@@ -6,7 +6,13 @@ import json, time, re
 import pandas as pd
 from PyPDF2 import PdfReader
 
-
+# ----------- Page & Theme------------
+st.set_page_config(
+    page_title="AI FI Planner 🇮🇳",
+    page_icon="₹",
+    layout="wide",
+    menu_items={"About": "RAG-grounded retirement planner MVP for Indian professionals."}
+)
 
 # Helpers
 @st.cache_data(show_spinner=False)
@@ -105,13 +111,7 @@ def fmt_val(v, suffix=""):
     if v is None: return "Not available"
     return f"{v}{suffix}"
 
-# ----------- Page & Theme------------
-st.set_page_config(
-    page_title="AI FI Planner 🇮🇳",
-    page_icon="₹",
-    layout="wide",
-    menu_items={"About": "RAG-grounded retirement planner MVP for Indian professionals."}
-)
+
 
 # Global styles (lightweight, no extra deps)
 st.markdown("""

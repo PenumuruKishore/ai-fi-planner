@@ -6,9 +6,9 @@ import json
 
 # Load environment variables
 load_dotenv()
-GROQ_API_KEY = st.secrets.get("GROQ_API_KEY", None) or os.getenv("GROQ_API_KEY")
+GROQ_API_KEY = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
 if not GROQ_API_KEY:
-    st.error("GROQ_API_KEY not found (set it in Streamlit Secrets or .env).")
+    st.error("GROQ_API_KEY not found. Add it in Streamlit Cloud → Manage app → Settings → Secrets.")
     st.stop()
 
 client = Groq(api_key=GROQ_API_KEY)

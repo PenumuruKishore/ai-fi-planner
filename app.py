@@ -2,7 +2,9 @@ import streamlit as st
 from dotenv import load_dotenv
 import os
 from groq import Groq
-import json, time
+import json, time, re
+import pandas as pd
+from PyPDF2 import PdfReader
 
 
 
@@ -14,6 +16,90 @@ def load_json(path: str, default):
             return json.load(f)
     except Exception:
         return default
+
+def extract_text_from_pdf(file) -> str:
+    try:
+        reader = PdfReader(file)
+        return "\n".join([(p.extract_text() or "") for p in reader.pages])
+    except Exception:
+        return ""
+
+def relevant_snippets(text: str, keywords=None, window=1, max_chunks=6) -> str:
+    """Light relevance filter for unstructured docs."""
+    if not text: return ""
+    if keywords is None:
+        keywords = ["salary","income","epf","nps","gratuity","deduction","basic pay",
+                    "hra","ctc","contribution","pension","bonus","allowance","tax"]
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    hits = []
+    for i, ln in enumerate(lines):
+        low = ln.lower()
+        if any(k in low for k in keywords):
+            start = max(0, i-window); end = min(len(lines), i+window+1)
+            chunk = "\n".join(lines[start:end])
+            if chunk not in hits:
+                hits.append(chunk)
+    return "\n---\n".join(hits[:max_chunks])
+
+def parse_structured_df(df: pd.DataFrame) -> dict:
+    """Infer income/expenses/savings from CSV headers."""
+    cols = {c.lower().strip(): c for c in df.columns}
+    out = {}
+    for k in ["income","monthly income","salary","net salary","take home"]:
+        if k in cols:
+            try: out["income"] = float(df[cols[k]].iloc[0]); break
+            except Exception: pass
+    for k in ["expenses","monthly expenses","spend","outflow","total expenses"]:
+        if k in cols:
+            try: out["expenses"] = float(df[cols[k]].iloc[0]); break
+            except Exception: pass
+    for k in ["investments","current investments","savings","corpus"]:
+        if k in cols:
+            try: out["savings_now"] = float(df[cols[k]].iloc[0]); break
+            except Exception: pass
+    return out
+
+def try_parse_json(s: str):
+    """Parse JSON from LLM (tolerate fenced code blocks)."""
+    if not s: return None
+    try:
+        return json.loads(s)
+    except Exception:
+        # strip code fences if present
+        m = re.search(r"\{.*\}", s, flags=re.S)
+        if m:
+            try:
+                return json.loads(m.group(0))
+            except Exception:
+                return None
+        return None
+
+# ------------ Session retention ------------
+if "profile" not in st.session_state:
+    st.session_state.profile = {}
+
+# ------------ Sidebar Inputs ------------
+with st.sidebar:
+    st.markdown("### ⚙️ Inputs")
+    # defaults may get overridden by uploaded CSV (below)
+    age = st.number_input("Your Age", min_value=18, max_value=70, value=st.session_state.profile.get("age", 30))
+    retire_age = st.number_input("Target Retirement Age", min_value=40, max_value=70, value=st.session_state.profile.get("retire_age", 60))
+    income = st.number_input("Monthly Income (₹)", min_value=0, value=int(st.session_state.profile.get("income", 100000)), step=5000)
+    expenses = st.number_input("Monthly Expenses (₹)", min_value=0, value=int(st.session_state.profile.get("expenses", 50000)), step=5000)
+    savings_now = st.number_input("Current Investments (₹)", min_value=0, value=int(st.session_state.profile.get("savings_now", 0)), step=10000)
+    risk = st.radio("Risk Profile", ["Low", "Medium", "High"], index={"Low":0,"Medium":1,"High":2}[st.session_state.profile.get("risk","Medium")], horizontal=True)
+
+    if st.button("💾 Save inputs to session"):
+        st.session_state.profile = {
+            "age": age, "retire_age": retire_age, "income": income,
+            "expenses": expenses, "savings_now": savings_now, "risk": risk
+        }
+        st.success("Saved for this session.")
+
+    st.markdown("<div class='hr'></div>", unsafe_allow_html=True)
+    with st.expander("Disclaimer"):
+        st.caption("Educational tool, not investment advice. Consult a SEBI-registered Investment Adviser for paid guidance.")
+
 
 def fmt_val(v, suffix=""):
     if v is None: return "Not available"
@@ -163,6 +249,43 @@ snippet_text = "\n".join(
 
 with st.expander("📚 Reference Rules (snippets)"):
     st.markdown(snippet_text)
+
+# ------------ Uploads: structured & unstructured ------------
+st.markdown("### 📥 Optional: Upload CSV/PDF/TXT (budgets, payslips, benefits)")
+upload = st.file_uploader("CSV → auto-fill numbers; PDF/TXT → extract relevant lines", type=["csv","pdf","txt"])
+
+structured_overrides = {}
+unstructured_snips = ""
+
+if upload is not None:
+    if upload.type == "text/csv":
+        try:
+            df = pd.read_csv(upload)
+            structured_overrides = parse_structured_df(df)
+            # Apply overrides to sidebar inputs
+            if "income" in structured_overrides: income = int(structured_overrides["income"])
+            if "expenses" in structured_overrides: expenses = int(structured_overrides["expenses"])
+            if "savings_now" in structured_overrides: savings_now = int(structured_overrides["savings_now"])
+            st.success(f"CSV loaded. Parsed: {', '.join(structured_overrides.keys()) or 'none'}")
+        except Exception as e:
+            st.warning(f"Could not read CSV: {e}")
+
+    elif upload.type == "application/pdf":
+        text = extract_text_from_pdf(upload)
+        unstructured_snips = relevant_snippets(text)
+        st.success("PDF loaded. Extracted relevant snippets below.")
+        with st.expander("View extracted snippets"):
+            st.code(unstructured_snips or "(no keyword matches)")
+
+    else:  # txt
+        try:
+            text = upload.getvalue().decode("utf-8", errors="ignore")
+            unstructured_snips = relevant_snippets(text)
+            st.success("Text loaded. Extracted relevant snippets below.")
+            with st.expander("View extracted snippets"):
+                st.code(unstructured_snips or "(no keyword matches)")
+        except Exception as e:
+            st.warning(f"Could not read text: {e}")
 
 # ------------ Generate Button Row ------------
 left, right = st.columns([1,1])

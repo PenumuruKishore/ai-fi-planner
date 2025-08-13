@@ -189,21 +189,6 @@ if not GROQ_API_KEY:
 
 client = Groq(api_key=GROQ_API_KEY)
 
-# ------------ Sidebar Inputs ------------
-with st.sidebar:
-    st.markdown("### ⚙️ Inputs")
-    age = st.number_input("Your Age", min_value=18, max_value=70, value=30)
-    retire_age = st.number_input("Target Retirement Age", min_value=40, max_value=70, value=60)
-    income = st.number_input("Monthly Income (₹)", min_value=0, value=100000, step=5000)
-    expenses = st.number_input("Monthly Expenses (₹)", min_value=0, value=50000, step=5000)
-    risk = st.radio("Risk Profile", ["Low", "Medium", "High"], index=1, horizontal=True)
-    st.markdown("<div class='hr'></div>", unsafe_allow_html=True)
-    with st.expander("Disclaimer"):
-        st.caption(
-            "This is an educational tool and **not investment advice**. "
-            "For personalized recommendations, consult a SEBI-registered Investment Adviser."
-        )
-
 # ------------ Hero ------------
 st.markdown("""
 <div class="hero">

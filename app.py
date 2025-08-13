@@ -6,7 +6,18 @@ import json, time
 
 
 
+# Helpers
+@st.cache_data(show_spinner=False)
+def load_json(path: str, default):
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return default
 
+def fmt_val(v, suffix=""):
+    if v is None: return "Not available"
+    return f"{v}{suffix}"
 
 # ----------- Page & Theme------------
 st.set_page_config(

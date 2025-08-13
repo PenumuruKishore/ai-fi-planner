@@ -6,12 +6,14 @@ import json
 
 # Load environment variables
 load_dotenv()
-groq_api_key = os.getenv("GROQ_API_KEY")
+GROQ_API_KEY = st.secrets.get("GROQ_API_KEY", None) or os.getenv("GROQ_API_KEY")
+if not GROQ_API_KEY:
+    st.error("GROQ_API_KEY not found (set it in Streamlit Secrets or .env).")
+    st.stop()
 
-# Initialize OpenAI client
-client = Groq(api_key=groq_api_key)
+client = Groq(api_key=GROQ_API_KEY)
 
-# Streamlit app
+# Streamlit app test
 st.title("AI Financial Independence Planner 🇮🇳")
 st.write("Enter your details to get a basic retirement savings plan.")
 
